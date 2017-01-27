@@ -1,0 +1,53 @@
+version: 1.0.{build}
+configuration: Release
+platform: Any CPU
+init:
+- cmd: git config --global core.autocrlf true
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+install:
+- ps: >-
+    Write-Host "Restoring NuGet Packages..."
+
+    cmd /c start /wait nuget restore
+
+    Write-Host "Restored" -ForegroundColor green
+
+    Write-Host "Installing .NET MicroFramework 4.3 ..."
+
+    $msiPath = "$($env:USERPROFILE)\MicroFrameworkSDK43.MSI"
+
+    (New-Object Net.WebClient).DownloadFile('http://download-codeplex.sec.s-msft.com/Download/Release?ProjectName=netmf&DownloadId=1423116&FileTime=130667921437670000&Build=21031', $msiPath)
+
+    cmd /c start /wait msiexec /i $msiPath /quiet
+
+    Write-Host "Installed" -ForegroundColor green
+
+
+    Write-Host "Installing .NET MicroFramework 4.4 ..."
+
+    $msiPath = "$($env:USERPROFILE)\MicroFrameworkSDK44.MSI"
+
+    (New-Object Net.WebClient).DownloadFile('https://github.com/NETMF/netmf-interpreter/releases/download/v4.4-RTW-20-Oct-2015/MicroFrameworkSDK.MSI', $msiPath)
+
+    cmd /c start /wait msiexec /i $msiPath /quiet
+
+    Write-Host "Installed" -ForegroundColor green
+nuget:
+  project_feed: true
+build:
+  verbosity: minimal
+artifacts:
+- path: NetFabric.Angle.Net35\bin\$(configuration)\NetFabric.Angle.dll
+  name: .NET 3.5 Assembly
+- path: NetFabric.Angle.Net35\bin\$(configuration)\NetFabric.Angle.xml
+  name: .NET MF 4.4 Documentation
+on_success:
+- cmd: >-
+    nuget pack NetFabric.Angle.nuspec -version %appveyor_build_version%
+
+    appveyor PushArtifact NetFabric.Angle.%appveyor_build_version%.nupkg
